@@ -1,0 +1,83 @@
+syntax = "proto3";
+package contentservice;
+
+// The content service definition.
+service ContentService {
+  // Makes a Put call
+  rpc Put (Request) returns (Response) {}
+}
+
+// File params sent as part of put request
+message Params {
+  int64 contracttorid = 1;
+  int64 ordernumber = 2;
+  int32 imagetype = 3;
+  string filename = 4;
+  int32 imagewidth = 5;
+  int32 imageheight = 6;
+  string releasedate = 7;
+  string deptcode = 8;
+  bytes filecontents = 9;
+}
+
+// Request sent to the Put call
+message Request {
+  string jsonrpc = 1;
+  string method = 2;
+  Params params = 3;
+  int32 id = 4;
+  int32 asyncmessageid = 5;
+  int32 traceid = 6;
+}
+
+// Message when Put request is successful
+message Result {
+  int32 contractorid = 1;
+  string releasedate = 2;
+  string scandate = 3;
+  int32 imagetype = 4;
+  int32 imagewidth = 5;
+  int32 imageheight = 6; 
+  string deptcode = 7;
+  string descprefix = 8;
+  string desctext = 9;
+  string category = 10;
+  int64 ordernumber = 11;
+  string archived = 12;
+  string datecreated = 13;
+  string datemodefied = 14;
+  int32 filesize = 15;
+  int32 id = 16;
+  string imagefilename = 17;
+  int32 imagerotated = 18;
+  int32 thumbnailsize = 19;
+  string webfilename = 20;
+  string mimetype = 21;
+  InspiPutResponse inspiresponsedata = 22;
+  VendorWebPutResponse vendorwebresponsedata = 23;
+  string guid = 24;
+}
+
+message InspiPutResponse{
+  int64 photodetailid = 1;
+}
+
+message VendorWebPutResponse{
+  int64 documentid = 1;
+  int64 annotationid = 2;
+}
+
+// Message when Put request failed
+message Error {
+  int32 code = 1;
+  string message = 2;
+  string data =3;
+}
+
+// Response from the Put call
+message Response{
+  string jsonrpc = 1;
+  int32 id = 2;
+  Result result = 3;
+  Error error = 4;
+}
