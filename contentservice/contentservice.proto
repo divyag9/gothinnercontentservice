@@ -4,12 +4,12 @@ package contentservice;
 // The content service definition.
 service ContentService {
   // Makes a Put call
-  rpc Put (Request) returns (Response) {}
+  rpc Put (PutRequest) returns (PutResponse) {}
 }
 
-// File params sent as part of put request
-message Params {
-  int64 contracttorid = 1;
+// Request sent to the server
+message PutRequest {
+  int64 contractorid = 1;
   int64 ordernumber = 2;
   int32 imagetype = 3;
   string filename = 4;
@@ -20,18 +20,18 @@ message Params {
   bytes filecontents = 9;
 }
 
-// Request sent to the Put call
-message Request {
+// Request sent to the servicebus Put call
+message JSONRPCRequest {
   string jsonrpc = 1;
   string method = 2;
-  Params params = 3;
+  PutRequest params = 3;
   int32 id = 4;
   int32 asyncmessageid = 5;
   int32 traceid = 6;
 }
 
-// Message when Put request is successful
-message Result {
+// Response from the Server
+message PutResponse {
   int32 contractorid = 1;
   string releasedate = 2;
   string scandate = 3;
@@ -68,16 +68,16 @@ message VendorWebPutResponse{
 }
 
 // Message when Put request failed
-message Error {
+message JSONRPCError {
   int32 code = 1;
   string message = 2;
   string data =3;
 }
 
-// Response from the Put call
-message Response{
+// Response from the servicebus Put call
+message JSONRPCResponse{
   string jsonrpc = 1;
   int32 id = 2;
-  Result result = 3;
-  Error error = 4;
+  PutResponse result = 3;
+  JSONRPCError error = 4;
 }
