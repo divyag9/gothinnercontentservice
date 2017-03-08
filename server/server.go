@@ -29,6 +29,11 @@ type server struct {
 	serviceBusEndPoint string
 }
 
+//ServiceBus interface for making the calls to headend
+type ServiceBus interface {
+	CallServiceBusPut(*pb.JSONRPCRequest) (*pb.JSONRPCResponse, error)
+}
+
 func (s *server) Put(ctx context.Context, request *pb.PutRequest) (*pb.PutResponse, error) {
 	jsonRPCRequest := createJSONRPCRequest(request)
 	jsonRPCResponse, err := getServiceBusResponse(s, jsonRPCRequest)
@@ -48,8 +53,8 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 	return jsonRPCRequest
 }
 
-func getServiceBusResponse(s *server, request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
-	jsonRPCResponse, err := s.CallServiceBusPut(request)
+func getServiceBusResponse(sb ServiceBus, request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+	jsonRPCResponse, err := sb.CallServiceBusPut(request)
 	if err != nil {
 		return nil, err
 	}

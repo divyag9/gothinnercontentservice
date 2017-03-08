@@ -21,13 +21,13 @@ func (f *FakeServer) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCR
 }
 
 var cases = []struct {
-	f                FakeServer
+	f                *FakeServer
 	request          *pb.JSONRPCRequest
 	expectedResponse *pb.JSONRPCResponse
 	expectedErr      error
 }{
 	{
-		f: FakeServer{
+		f: &FakeServer{
 			Response: &pb.JSONRPCResponse{},
 			Err:      nil,
 		},
@@ -47,7 +47,7 @@ var cases = []struct {
 		expectedErr:      nil,
 	},
 	{
-		f: FakeServer{
+		f: &FakeServer{
 			Response: &pb.JSONRPCResponse{},
 			Err:      errors.New("Fake Error"),
 		},
@@ -59,7 +59,7 @@ var cases = []struct {
 
 func TestCallServiceBusPut(t *testing.T) {
 	for _, c := range cases {
-		response, err := c.f.CallServiceBusPut(c.request)
+		response, err := getServiceBusResponse(c.f, c.request)
 		if !reflect.DeepEqual(err, c.expectedErr) {
 			t.Errorf("Expected err to be %q but it was %q", c.expectedErr, err)
 		}
