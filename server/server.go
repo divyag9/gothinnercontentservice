@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -50,19 +49,7 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 }
 
 func getServiceBusResponse(s *server, request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
-	requestBytes, err := marshalJSONRPCRequest(request)
-	if err != nil {
-		return nil, err
-	}
-	responseBody, err := s.CallServiceBusPut(requestBytes)
-	if err != nil {
-		return nil, err
-	}
-	jsonRPCResponse := &pb.JSONRPCResponse{}
-	body, _ := ioutil.ReadAll(responseBody)
-	body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
-	jsonRPCResponse, err = unmarshalJSONRPCResponse(body)
-	fmt.Println("json response: ", jsonRPCResponse.Result)
+	jsonRPCResponse, err := s.CallServiceBusPut(request)
 	if err != nil {
 		return nil, err
 	}
@@ -70,15 +57,12 @@ func getServiceBusResponse(s *server, request *pb.JSONRPCRequest) (*pb.JSONRPCRe
 	return jsonRPCResponse, nil
 }
 
-func marshalJSONRPCRequest(request *pb.JSONRPCRequest) ([]byte, error) {
-	jsonRPCRequestBytes, err := json.Marshal(request)
+func (s *server) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
-	return jsonRPCRequestBytes, nil
-}
 
-func (s *server) CallServiceBusPut(requestBytes []byte) (io.ReadCloser, error) {
 	req, err := http.NewRequest("POST", s.serviceBusEndPoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
@@ -89,16 +73,15 @@ func (s *server) CallServiceBusPut(requestBytes []byte) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
 
-	return resp.Body, nil
-}
-
-func unmarshalJSONRPCResponse(result []byte) (*pb.JSONRPCResponse, error) {
 	jsonRPCResponse := &pb.JSONRPCResponse{}
-	err := json.Unmarshal(result, jsonRPCResponse)
+	err = json.Unmarshal(body, jsonRPCResponse)
 	if err != nil {
 		return nil, err
 	}
+
 	return jsonRPCResponse, nil
 }
 
