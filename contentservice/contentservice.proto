@@ -17,7 +17,7 @@ message PutRequest {
   int32 imageheight = 6;
   string releasedate = 7;
   string deptcode = 8;
-  bytes filecontents = 9;
+  string filecontents = 9;
 }
 
 // Request sent to the servicebus Put call
@@ -32,6 +32,21 @@ message JSONRPCRequest {
 
 // Response from the Server
 message PutResponse {
+  JSONRPCResult result = 1;
+  JSONRPCError error = 2;
+}
+
+message InspiPutResponse{
+  int64 photodetailid = 1;
+}
+
+message VendorWebPutResponse{
+  int64 documentid = 1;
+  int64 annotationid = 2;
+}
+
+// Message when Put request succeeded
+message JSONRPCResult {
   int32 contractorid = 1;
   string releasedate = 2;
   string scandate = 3;
@@ -58,15 +73,6 @@ message PutResponse {
   string guid = 24;
 }
 
-message InspiPutResponse{
-  int64 photodetailid = 1;
-}
-
-message VendorWebPutResponse{
-  int64 documentid = 1;
-  int64 annotationid = 2;
-}
-
 // Message when Put request failed
 message JSONRPCError {
   int32 code = 1;
@@ -78,6 +84,6 @@ message JSONRPCError {
 message JSONRPCResponse{
   string jsonrpc = 1;
   int32 id = 2;
-  PutResponse result = 3;
+  JSONRPCResult result = 3;
   JSONRPCError error = 4;
 }

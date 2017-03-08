@@ -31,7 +31,18 @@ var cases = []struct {
 			Response: &pb.JSONRPCResponse{},
 			Err:      nil,
 		},
-		request:          &pb.JSONRPCRequest{},
+		request: &pb.JSONRPCRequest{Jsonrpc: "2.0",
+			Method: "CONTENTSERVICE.PUT",
+			Params: &pb.PutRequest{Contractorid: 72494,
+				Ordernumber: 600016555,
+				Imagetype:   1,
+				Filename:    "test.png",
+				Imagewidth:  100,
+				Imageheight: 100,
+				Releasedate: "2015-08-06",
+				Deptcode:    "01",
+			},
+		},
 		expectedResponse: &pb.JSONRPCResponse{},
 		expectedErr:      nil,
 	},
@@ -46,40 +57,6 @@ var cases = []struct {
 	},
 }
 
-var encodeJSONRPCRequestCases = []struct {
-	putRequest          *pb.PutRequest
-	expectedJSONRequest *pb.JSONRPCRequest
-	expectedErr         error
-}{
-	{
-		putRequest:          &pb.PutRequest{},
-		expectedJSONRequest: &pb.JSONRPCRequest{},
-		expectedErr:         nil,
-	},
-	{
-		putRequest:          &pb.PutRequest{},
-		expectedJSONRequest: nil,
-		expectedErr:         errors.New("Fake Error"),
-	},
-}
-
-var encodePutResponseCases = []struct {
-	jsonResponse        *pb.JSONRPCResponse
-	expectedPutResponse *pb.PutResponse
-	expectedErr         error
-}{
-	{
-		jsonResponse:        &pb.JSONRPCResponse{},
-		expectedPutResponse: &pb.PutResponse{},
-		expectedErr:         nil,
-	},
-	{
-		jsonResponse:        &pb.JSONRPCResponse{},
-		expectedPutResponse: nil,
-		expectedErr:         errors.New("Fake Error"),
-	},
-}
-
 func TestCallServiceBusPut(t *testing.T) {
 	for _, c := range cases {
 		response, err := c.f.CallServiceBusPut(c.request)
@@ -89,34 +66,6 @@ func TestCallServiceBusPut(t *testing.T) {
 
 		if !reflect.DeepEqual(c.expectedResponse, response) {
 			t.Errorf("Expected %q but got %q", c.expectedResponse, response)
-		}
-	}
-}
-
-func TestEncodeJSONRPCRequest(t *testing.T) {
-	s := &server{}
-	for _, c := range encodeJSONRPCRequestCases {
-		jsonRequest, err := s.EncodeJSONRPCRequest(c.putRequest)
-		if !reflect.DeepEqual(err, c.expectedErr) {
-			t.Errorf("Expected err to be %q but it was %q", c.expectedErr, err)
-		}
-
-		if !reflect.DeepEqual(c.expectedJSONRequest, jsonRequest) {
-			t.Errorf("Expected %q but got %q", c.expectedJSONRequest, jsonRequest)
-		}
-	}
-}
-
-func TestEncodePutResponse(t *testing.T) {
-	s := &server{}
-	for _, c := range encodePutResponseCases {
-		putResponse, err := s.EncodePutResponse(c.jsonResponse)
-		if !reflect.DeepEqual(err, c.expectedErr) {
-			t.Errorf("Expected err to be %q but it was %q", c.expectedErr, err)
-		}
-
-		if !reflect.DeepEqual(c.expectedPutResponse, putResponse) {
-			t.Errorf("Expected %q but got %q", c.expectedPutResponse, putResponse)
 		}
 	}
 }

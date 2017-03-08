@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net"
+	"net/http"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -14,55 +19,104 @@ import (
 )
 
 var (
-	tls      = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	certFile = flag.String("cert_file", "testdata/server1.pem", "The TLS cert file")
-	keyFile  = flag.String("key_file", "testdata/server1.key", "The TLS key file")
-	port     = flag.Int("port", 10000, "The server port")
+	tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+	certFile           = flag.String("cert_file", "testdata/server1.pem", "The TLS cert file")
+	keyFile            = flag.String("key_file", "testdata/server1.key", "The TLS key file")
+	port               = flag.Int("port", 10000, "The server port")
+	serviceBusEndPoint = flag.String("servicebus_endpoint", "http://servicebus.qa01.local/Execute.svc/Execute", "The servicebus execute endpoint")
 )
 
-type server struct{}
+type server struct {
+	serviceBusEndPoint string
+}
 
 func (s *server) Put(ctx context.Context, request *pb.PutRequest) (*pb.PutResponse, error) {
-	jsonRPCRequest, err := s.EncodeJSONRPCRequest(request)
+	jsonRPCRequest := s.CreateJSONRPCRequest(request)
+	jsonRPCResponse, err := s.GetServiceBusResponse(jsonRPCRequest)
 	if err != nil {
 		return nil, err
 	}
-	jsonRPCResponse, err := s.CallServiceBusPut(jsonRPCRequest)
-	if err != nil {
-		return nil, err
-	}
-	putResponse, err := s.EncodePutResponse(jsonRPCResponse)
-	if err != nil {
-		return nil, err
-	}
+	putResponse := s.CreatePutResponse(jsonRPCResponse)
+
 	return putResponse, nil
 }
 
-func (s *server) EncodeJSONRPCRequest(request *pb.PutRequest) (*pb.JSONRPCRequest, error) {
-	return &pb.JSONRPCRequest{}, nil
+func (s *server) CreateJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
+	jsonRPCRequest := &pb.JSONRPCRequest{}
+	jsonRPCRequest.Jsonrpc = "2.0"
+	jsonRPCRequest.Method = "CONTENTSERVICE.PUT"
+	jsonRPCRequest.Params = request
+	return jsonRPCRequest
 }
 
-func (s *server) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
-	return &pb.JSONRPCResponse{}, nil
+func (s *server) GetServiceBusResponse(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+	requestBytes, err := marshalJSONRPCRequest(request)
+	if err != nil {
+		return nil, err
+	}
+	responseBody, err := s.CallServiceBusPut(requestBytes)
+	if err != nil {
+		return nil, err
+	}
+	jsonRPCResponse := &pb.JSONRPCResponse{}
+	body, _ := ioutil.ReadAll(responseBody)
+	body = bytes.TrimPrefix(body, []byte("\xef\xbb\xbf"))
+	jsonRPCResponse, err = unmarshalJSONRPCResponse(body)
+	fmt.Println("json response: ", jsonRPCResponse.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonRPCResponse, nil
 }
 
 func marshalJSONRPCRequest(request *pb.JSONRPCRequest) ([]byte, error) {
-	return []byte{1, 2, 2}, nil
+	jsonRPCRequestBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+	return jsonRPCRequestBytes, nil
+}
+
+func (s *server) CallServiceBusPut(requestBytes []byte) (io.ReadCloser, error) {
+	req, err := http.NewRequest("POST", s.serviceBusEndPoint, bytes.NewBuffer(requestBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }
 
 func unmarshalJSONRPCResponse(result []byte) (*pb.JSONRPCResponse, error) {
-	return &pb.JSONRPCResponse{}, nil
+	jsonRPCResponse := &pb.JSONRPCResponse{}
+	err := json.Unmarshal(result, jsonRPCResponse)
+	if err != nil {
+		return nil, err
+	}
+	return jsonRPCResponse, nil
 }
 
-func (s *server) EncodePutResponse(response *pb.JSONRPCResponse) (*pb.PutResponse, error) {
-	return &pb.PutResponse{}, nil
+func (s *server) CreatePutResponse(response *pb.JSONRPCResponse) *pb.PutResponse {
+	putResponse := &pb.PutResponse{}
+	putResponse.Result = response.GetResult()
+	putResponse.Error = response.GetError()
+
+	return putResponse
 }
 
 func main() {
 	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	contentserviceServer := &server{}
+	contentserviceServer.serviceBusEndPoint = *serviceBusEndPoint
+	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		grpclog.Fatalf("failed to listen: %v", err)
+		grpclog.Fatalf("Failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
 	if *tls {
@@ -73,8 +127,8 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterContentServiceServer(grpcServer, &server{})
-	if err := grpcServer.Serve(lis); err != nil {
-		fmt.Println("failed to serve: ", err) // We want to continue serving and not die?
+	pb.RegisterContentServiceServer(grpcServer, contentserviceServer)
+	if err := grpcServer.Serve(listen); err != nil {
+		fmt.Println("Failed to serve: ", err)
 	}
 }
