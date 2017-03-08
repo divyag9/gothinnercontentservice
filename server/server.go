@@ -50,6 +50,7 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 	jsonRPCRequest.Jsonrpc = "2.0"
 	jsonRPCRequest.Method = "CONTENTSERVICE.PUT"
 	jsonRPCRequest.Params = request
+
 	return jsonRPCRequest
 }
 
