@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"log"
@@ -116,25 +115,24 @@ func createPutRequest(in *input) (*pb.PutRequest, error) {
 	return putRequest, nil
 }
 
-func getFileContents(filename string) (string, error) {
+func getFileContents(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return "", fmt.Errorf("Error opening file: %s", err)
+		return nil, fmt.Errorf("Error opening file: %s", err)
 	}
 	defer file.Close()
 
 	stats, err := file.Stat()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	size := stats.Size()
 	fileBytes := make([]byte, size)
 	reader := bufio.NewReader(file)
 	_, err = reader.Read(fileBytes)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	encodedFileBytes := base64.StdEncoding.EncodeToString(fileBytes)
 
-	return encodedFileBytes, nil
+	return fileBytes, nil
 }

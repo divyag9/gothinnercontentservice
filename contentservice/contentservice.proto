@@ -17,7 +17,7 @@ message PutRequest {
   int32 imageheight = 6;
   string releasedate = 7;
   string deptcode = 8;
-  string filecontents = 9;
+  bytes filecontents = 9;
 }
 
 // Request sent to the servicebus Put call
