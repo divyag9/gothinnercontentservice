@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"reflect"
 	"testing"
@@ -13,7 +14,7 @@ type FakeServer struct {
 	Err      error
 }
 
-func (f *FakeServer) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+func (f *FakeServer) mockCallServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
 	if f.Err != nil {
 		return nil, f.Err
 	}
@@ -22,36 +23,72 @@ func (f *FakeServer) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCR
 
 var cases = []struct {
 	f                *FakeServer
-	request          *pb.JSONRPCRequest
-	expectedResponse *pb.JSONRPCResponse
+	request          *pb.PutRequest
+	expectedResponse *pb.PutResponse
 	expectedErr      error
 }{
 	{
 		f: &FakeServer{
-			Response: &pb.JSONRPCResponse{},
-			Err:      nil,
+			Response: &pb.JSONRPCResponse{Jsonrpc: "2.0",
+				Result: &pb.JSONRPCResult{Contractorid: 72494,
+					Releasedate:   "2015-08-06T15:09:30",
+					Scandate:      "2017-03-09T10:33:09",
+					Imagetype:     1,
+					Imagewidth:    100,
+					Imageheight:   100,
+					Deptcode:      "01",
+					Descprefix:    "test",
+					Desctext:      "test",
+					Category:      "test",
+					Ordernumber:   600016555,
+					Archived:      "N",
+					Datecreated:   "2017-03-09T10:33:09",
+					Datemodefied:  "2017-03-09T10:33:09",
+					Filesize:      180,
+					Id:            1810448062,
+					Imagefilename: "\\\\filer\\QA01\\ImageStore\\ServiceBus\\600\\016\\555\\da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+					Thumbnailsize: 0,
+					Webfilename:   "QA01/ImageStore/ServiceBus/600/016/555/da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+				}},
+			Err: nil,
 		},
-		request: &pb.JSONRPCRequest{Jsonrpc: "2.0",
-			Method: "CONTENTSERVICE.PUT",
-			Params: &pb.PutRequest{Contractorid: 72494,
-				Ordernumber: 600016555,
-				Imagetype:   1,
-				Filename:    "test.png",
-				Imagewidth:  100,
-				Imageheight: 100,
-				Releasedate: "2015-08-06",
-				Deptcode:    "01",
-			},
+		request: &pb.PutRequest{Contractorid: 72494,
+			Ordernumber: 600016555,
+			Imagetype:   1,
+			Filename:    "test.png",
+			Imagewidth:  100,
+			Imageheight: 100,
+			Releasedate: "2015-08-06",
+			Deptcode:    "01",
 		},
-		expectedResponse: &pb.JSONRPCResponse{},
-		expectedErr:      nil,
+		expectedResponse: &pb.PutResponse{Result: &pb.JSONRPCResult{Contractorid: 72494,
+			Releasedate:   "2015-08-06T15:09:30",
+			Scandate:      "2017-03-09T10:33:09",
+			Imagetype:     1,
+			Imagewidth:    100,
+			Imageheight:   100,
+			Deptcode:      "01",
+			Descprefix:    "test",
+			Desctext:      "test",
+			Category:      "test",
+			Ordernumber:   600016555,
+			Archived:      "N",
+			Datecreated:   "2017-03-09T10:33:09",
+			Datemodefied:  "2017-03-09T10:33:09",
+			Filesize:      180,
+			Id:            1810448062,
+			Imagefilename: "\\\\filer\\QA01\\ImageStore\\ServiceBus\\600\\016\\555\\da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+			Thumbnailsize: 0,
+			Webfilename:   "QA01/ImageStore/ServiceBus/600/016/555/da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+		}},
+		expectedErr: nil,
 	},
 	{
 		f: &FakeServer{
 			Response: &pb.JSONRPCResponse{},
 			Err:      errors.New("Fake Error"),
 		},
-		request:          &pb.JSONRPCRequest{},
+		request:          &pb.PutRequest{},
 		expectedResponse: nil,
 		expectedErr:      errors.New("Fake Error"),
 	},
@@ -90,14 +127,54 @@ var putResponseCases = []struct {
 	expectedPutResponse *pb.PutResponse
 }{
 	{
-		jsonResponse:        &pb.JSONRPCResponse{},
-		expectedPutResponse: &pb.PutResponse{},
+		jsonResponse: &pb.JSONRPCResponse{Jsonrpc: "2.0",
+			Result: &pb.JSONRPCResult{Contractorid: 72494,
+				Releasedate:   "2015-08-06T15:09:30",
+				Scandate:      "2017-03-09T10:33:09",
+				Imagetype:     1,
+				Imagewidth:    100,
+				Imageheight:   100,
+				Deptcode:      "01",
+				Descprefix:    "test",
+				Desctext:      "test",
+				Category:      "test",
+				Ordernumber:   600016555,
+				Archived:      "N",
+				Datecreated:   "2017-03-09T10:33:09",
+				Datemodefied:  "2017-03-09T10:33:09",
+				Filesize:      180,
+				Id:            1810448062,
+				Imagefilename: "\\\\filer\\QA01\\ImageStore\\ServiceBus\\600\\016\\555\\da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+				Thumbnailsize: 0,
+				Webfilename:   "QA01/ImageStore/ServiceBus/600/016/555/da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+			}},
+		expectedPutResponse: &pb.PutResponse{Result: &pb.JSONRPCResult{Contractorid: 72494,
+			Releasedate:   "2015-08-06T15:09:30",
+			Scandate:      "2017-03-09T10:33:09",
+			Imagetype:     1,
+			Imagewidth:    100,
+			Imageheight:   100,
+			Deptcode:      "01",
+			Descprefix:    "test",
+			Desctext:      "test",
+			Category:      "test",
+			Ordernumber:   600016555,
+			Archived:      "N",
+			Datecreated:   "2017-03-09T10:33:09",
+			Datemodefied:  "2017-03-09T10:33:09",
+			Filesize:      180,
+			Id:            1810448062,
+			Imagefilename: "\\\\filer\\QA01\\ImageStore\\ServiceBus\\600\\016\\555\\da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+			Thumbnailsize: 0,
+			Webfilename:   "QA01/ImageStore/ServiceBus/600/016/555/da00563b-bb38-49b1-b3ef-29dbce63fbed.png",
+		}},
 	},
 }
 
-func TestCallServiceBusPut(t *testing.T) {
+func TestCallServiceBus(t *testing.T) {
 	for _, c := range cases {
-		response, err := getServiceBusResponse(c.f, c.request)
+		server := newServer(c.f.mockCallServiceBus)
+		response, err := server.Put(context.Background(), c.request)
 		if !reflect.DeepEqual(err, c.expectedErr) {
 			t.Errorf("Expected err to be %q but it was %q", c.expectedErr, err)
 		}

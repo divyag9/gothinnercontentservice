@@ -25,18 +25,16 @@ var (
 	serviceBusEndPoint = flag.String("servicebus_endpoint", "http://servicebus.qa01.local/Execute.svc/Execute", "The servicebus execute endpoint")
 )
 
-type server struct {
-	serviceBusEndPoint string
-}
+// ServiceBusCaller function type of callServiceBus
+type ServiceBusCaller func(*pb.JSONRPCRequest) (*pb.JSONRPCResponse, error)
 
-//ServiceBus interface for making the calls to headend
-type ServiceBus interface {
-	CallServiceBusPut(*pb.JSONRPCRequest) (*pb.JSONRPCResponse, error)
+type server struct {
+	callServiceBus ServiceBusCaller
 }
 
 func (s *server) Put(ctx context.Context, request *pb.PutRequest) (*pb.PutResponse, error) {
 	jsonRPCRequest := createJSONRPCRequest(request)
-	jsonRPCResponse, err := getServiceBusResponse(s, jsonRPCRequest)
+	jsonRPCResponse, err := s.callServiceBus(jsonRPCRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -54,22 +52,13 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 	return jsonRPCRequest
 }
 
-func getServiceBusResponse(sb ServiceBus, request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
-	jsonRPCResponse, err := sb.CallServiceBusPut(request)
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonRPCResponse, nil
-}
-
-func (s *server) CallServiceBusPut(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+func callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", s.serviceBusEndPoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("POST", *serviceBusEndPoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +87,10 @@ func createPutResponse(response *pb.JSONRPCResponse) *pb.PutResponse {
 	return putResponse
 }
 
+func newServer(sbc ServiceBusCaller) *server {
+	return &server{callServiceBus: sbc}
+}
+
 func main() {
 	flag.Parse()
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
@@ -113,8 +106,8 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	contentServiceServer := &server{serviceBusEndPoint: *serviceBusEndPoint}
-	pb.RegisterContentServiceServer(grpcServer, contentServiceServer)
+	server := newServer(callServiceBus)
+	pb.RegisterContentServiceServer(grpcServer, server)
 	if err := grpcServer.Serve(listen); err != nil {
 		fmt.Println("Failed to serve: ", err)
 	}
