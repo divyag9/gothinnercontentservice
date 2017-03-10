@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	pb "github.com/divyag9/gothinnercontentservice/contentservice"
 	"google.golang.org/grpc"
@@ -83,17 +84,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating put request: %v", err)
 	}
-
 	// Contact the server and print out its response.
-	response, err := client.Put(context.Background(), putRequest)
-	if err != nil {
-		log.Fatalf("Error making put call: %v", err)
+	count := 0
+	var elapsed time.Duration
+	for count < 20 {
+		start := time.Now()
+		response, err := client.Put(context.Background(), putRequest)
+		if err != nil {
+			log.Fatalf("Error making put call: %v", err)
+		}
+		if response.GetResult() != nil {
+			fmt.Println("put id: ", response.GetResult().GetId())
+		} else {
+			fmt.Println("put error: ", response.GetError().GetMessage())
+		}
+		elapsed = elapsed + time.Since(start)
+		count++
+
 	}
-	if response.GetResult() != nil {
-		fmt.Println("put id: ", response.GetResult().GetId())
-	} else {
-		fmt.Println("put error: ", response.GetError().GetMessage())
-	}
+	average := elapsed / time.Duration(count)
+	fmt.Println("Average elapsed: ", average)
 }
 
 func createPutRequest(in *input) (*pb.PutRequest, error) {
