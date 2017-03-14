@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -53,10 +54,13 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 }
 
 func callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+	start := time.Now()
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
+	elapsed := time.Since(start)
+	fmt.Println("Elapsed Marshal: ", elapsed)
 
 	req, err := http.NewRequest("POST", *serviceBusEndPoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
