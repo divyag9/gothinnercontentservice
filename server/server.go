@@ -18,24 +18,25 @@ import (
 	pb "github.com/divyag9/gothinnercontentservice/contentservice"
 )
 
-var (
-	tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	certFile           = flag.String("cert_file", "testdata/server1.pem", "The TLS cert file")
-	keyFile            = flag.String("key_file", "testdata/server1.key", "The TLS key file")
-	port               = flag.Int("port", 10000, "The server port")
-	serviceBusEndPoint = flag.String("servicebus_endpoint", "http://servicebus.qa01.local/Execute.svc/Execute", "The servicebus execute endpoint")
-)
-
-// ServiceBusCaller function type of callServiceBus
-type ServiceBusCaller func(*pb.JSONRPCRequest) (*pb.JSONRPCResponse, error)
-
-type server struct {
-	callServiceBus ServiceBusCaller
+// ServiceBusCaller interface for calling ServiceBus
+type ServiceBusCaller interface {
+	callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error)
 }
 
-func (s *server) Put(ctx context.Context, request *pb.PutRequest) (*pb.PutResponse, error) {
+// Server servicebus
+type Server struct {
+	ServiceBusCaller
+}
+
+// Caller interface for servicebus
+type Caller struct {
+	serviceBusEndPoint string
+}
+
+// Put performs the servicebus put
+func (s *Server) Put(ctx context.Context, request *pb.PutRequest) (*pb.PutResponse, error) {
 	jsonRPCRequest := createJSONRPCRequest(request)
-	jsonRPCResponse, err := s.callServiceBus(jsonRPCRequest)
+	jsonRPCResponse, err := s.ServiceBusCaller.callServiceBus(jsonRPCRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +54,7 @@ func createJSONRPCRequest(request *pb.PutRequest) *pb.JSONRPCRequest {
 	return jsonRPCRequest
 }
 
-func callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+func (c *Caller) callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
 	start := time.Now()
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
@@ -62,7 +63,7 @@ func callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
 	elapsed := time.Since(start)
 	fmt.Println("Elapsed Marshal: ", elapsed)
 
-	req, err := http.NewRequest("POST", *serviceBusEndPoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("POST", c.serviceBusEndPoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -91,11 +92,18 @@ func createPutResponse(response *pb.JSONRPCResponse) *pb.PutResponse {
 	return putResponse
 }
 
-func newServer(sbc ServiceBusCaller) *server {
-	return &server{callServiceBus: sbc}
+// NewServer creates new servicebus  server
+func NewServer(serviceBusEndPoint string) *Server {
+	return &Server{ServiceBusCaller: &Caller{serviceBusEndPoint: serviceBusEndPoint}}
 }
 
 func main() {
+	tls := flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+	certFile := flag.String("cert_file", "testdata/server1.pem", "The TLS cert file")
+	keyFile := flag.String("key_file", "testdata/server1.key", "The TLS key file")
+	port := flag.Int("port", 10000, "The server port")
+	serviceBusEndPoint := flag.String("servicebus_endpoint", "http://servicebus.qa01.local/Execute.svc/Execute", "The servicebus execute endpoint")
+
 	flag.Parse()
 	listen, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
@@ -110,7 +118,7 @@ func main() {
 		opts = []grpc.ServerOption{grpc.Creds(creds)}
 	}
 	grpcServer := grpc.NewServer(opts...)
-	server := newServer(callServiceBus)
+	server := NewServer(*serviceBusEndPoint)
 	pb.RegisterContentServiceServer(grpcServer, server)
 	if err := grpcServer.Serve(listen); err != nil {
 		fmt.Println("Failed to serve: ", err)

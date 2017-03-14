@@ -14,7 +14,7 @@ type FakeServer struct {
 	Err      error
 }
 
-func (f *FakeServer) mockCallServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
+func (f *FakeServer) callServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPCResponse, error) {
 	if f.Err != nil {
 		return nil, f.Err
 	}
@@ -22,13 +22,15 @@ func (f *FakeServer) mockCallServiceBus(request *pb.JSONRPCRequest) (*pb.JSONRPC
 }
 
 var cases = []struct {
-	f                *FakeServer
+	server           *Server
+	fakeServer       *FakeServer
 	request          *pb.PutRequest
 	expectedResponse *pb.PutResponse
 	expectedErr      error
 }{
 	{
-		f: &FakeServer{
+		server: NewServer("http://servicebus.qa01.local/Execute.svc/Execute"),
+		fakeServer: &FakeServer{
 			Response: &pb.JSONRPCResponse{Jsonrpc: "2.0",
 				Result: &pb.JSONRPCResult{Contractorid: 72494,
 					Releasedate:   "2015-08-06T15:09:30",
@@ -84,7 +86,8 @@ var cases = []struct {
 		expectedErr: nil,
 	},
 	{
-		f: &FakeServer{
+		server: NewServer("http://servicebus.qa01.local/Execute.svc/Execute"),
+		fakeServer: &FakeServer{
 			Response: &pb.JSONRPCResponse{},
 			Err:      errors.New("Fake Error"),
 		},
@@ -173,8 +176,8 @@ var putResponseCases = []struct {
 
 func TestCallServiceBus(t *testing.T) {
 	for _, c := range cases {
-		server := newServer(c.f.mockCallServiceBus)
-		response, err := server.Put(context.Background(), c.request)
+		c.server.ServiceBusCaller = c.fakeServer
+		response, err := c.server.Put(context.Background(), c.request)
 		if !reflect.DeepEqual(err, c.expectedErr) {
 			t.Errorf("Expected err to be %q but it was %q", c.expectedErr, err)
 		}

@@ -15,21 +15,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
-var (
-	tls                = flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	caFile             = flag.String("ca_file", "testdata/ca.pem", "The file containning the CA root cert file")
-	serverAddr         = flag.String("server_addr", "127.0.0.1:10000", "The server address in the format of host:port")
-	serverHostOverride = flag.String("server_host_override", "", "The server name use to verify the hostname returned by TLS handshake")
-	contractorID       = flag.Int64("contractorid", 72494, "Contractor Id for the PUT call")
-	orderNumber        = flag.Int64("ordernumber", 600016555, "OrderNumber for the PUT call")
-	imageType          = flag.Int("imagetype", 1, "Imagetype for the PUT call")
-	fileName           = flag.String("filename", "../testdata/e3e0f976-79a5-4059-ac23-d44386a6d4da.png", "Filename for the PUT call")
-	imageWidth         = flag.Int("imagewidth", 100, "Imagewidth for the PUT call")
-	imageHeight        = flag.Int("imageheight", 100, "Imageheight for the PUT call")
-	releaseDate        = flag.String("releasedate", "2015-08-06", "Releasedate for the PUT call")
-	deptCode           = flag.String("deptcode", "01", "Department code for the PUT call")
-)
-
 type input struct {
 	contracttorid int64
 	ordernumber   int64
@@ -42,6 +27,19 @@ type input struct {
 }
 
 func main() {
+	tls := flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
+	caFile := flag.String("ca_file", "testdata/ca.pem", "The file containning the CA root cert file")
+	serverAddr := flag.String("server_addr", "127.0.0.1:10000", "The server address in the format of host:port")
+	serverHostOverride := flag.String("server_host_override", "", "The server name use to verify the hostname returned by TLS handshake")
+	contractorID := flag.Int64("contractorid", 72494, "Contractor Id for the PUT call")
+	orderNumber := flag.Int64("ordernumber", 600016555, "OrderNumber for the PUT call")
+	imageType := flag.Int("imagetype", 1, "Imagetype for the PUT call")
+	fileName := flag.String("filename", "../testdata/e3e0f976-79a5-4059-ac23-d44386a6d4da.png", "Filename for the PUT call")
+	imageWidth := flag.Int("imagewidth", 100, "Imagewidth for the PUT call")
+	imageHeight := flag.Int("imageheight", 100, "Imageheight for the PUT call")
+	releaseDate := flag.String("releasedate", "2015-08-06", "Releasedate for the PUT call")
+	deptCode := flag.String("deptcode", "01", "Department code for the PUT call")
+
 	flag.Parse()
 	var opts []grpc.DialOption
 	if *tls {
